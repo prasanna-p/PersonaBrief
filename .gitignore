@@ -1,1 +1,7 @@
 search_results.json
+.venv/
+.python312/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
