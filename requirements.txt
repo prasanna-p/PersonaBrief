@@ -1,8 +1,11 @@
 annotated-types==0.7.0
+blinker==1.9.0
 cachetools==5.5.0
 certifi==2024.12.14
 charset-normalizer==3.4.1
+click==8.1.8
 docstring_parser==0.16
+Flask==3.1.0
 google-api-core==2.24.0
 google-auth==2.37.0
 google-cloud-aiplatform==1.71.1
@@ -17,6 +20,9 @@ grpc-google-iam-v1==0.14.0
 grpcio==1.69.0
 grpcio-status==1.69.0
 idna==3.10
+itsdangerous==2.2.0
+Jinja2==3.1.5
+MarkupSafe==3.0.2
 numpy==2.2.2
 packaging==24.2
 proto-plus==1.25.0
@@ -33,3 +39,4 @@ six==1.17.0
 typing_extensions==4.12.2
 urllib3==2.3.0
 vertexai==1.71.1
+Werkzeug==3.1.3
