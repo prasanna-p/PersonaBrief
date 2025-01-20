@@ -1,152 +1,100 @@
-import requests
+from flask import Flask, request, jsonify, render_template
 import os
 import json
+import requests
 import vertexai
 from vertexai.preview.generative_models import GenerativeModel, ChatSession
 
+app = Flask(__name__)
 
-# Function to perform a Google Custom Search
+# Initialize Vertex AI
+API_KEY = os.getenv('API_KEY')
+SEARCH_ENGINE_ID = os.getenv('SEARCH_ENGINE_ID')
+PROJECT_ID = os.getenv('PROJECT_ID')
+LOCATION = os.getenv('LOCATION')
+
+if API_KEY and SEARCH_ENGINE_ID and PROJECT_ID and LOCATION:
+    vertexai.init(project=PROJECT_ID, location=LOCATION)
+    model = GenerativeModel("gemini-1.0-pro")
+    chat = model.start_chat()
+else:
+    raise EnvironmentError("Missing required environment variables.")
+
+# Google Search Function
 def google_search(query):
-    """
-    Performs a Google Custom Search using the Custom Search JSON API.
-
-    Args:
-        query (str): The search query.
-
-    Returns:
-        str: The raw JSON response from the API as a string.
-    """
     url = "https://www.googleapis.com/customsearch/v1"
     params = {
         "key": API_KEY,
         "cx": SEARCH_ENGINE_ID,
         "q": query,
-        "num": 5  # Limit to the first 5 results
+        "num": 5
     }
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
-    }
-
+    headers = {"User-Agent": "Mozilla/5.0"}
     try:
         response = requests.get(url, headers=headers, params=params)
-        response.raise_for_status()  # Raise HTTPError for bad responses
+        response.raise_for_status()
         return response.text
     except requests.exceptions.RequestException as e:
-        print(f"Error during API request: {e}")
-        return ""
+        return {"error": f"Error during API request: {e}"}
 
-
-# Function to parse search results
+# Parse Results Function
 def parse_results(json_string):
-    """
-    Extracts relevant information from the JSON response of Google Custom Search API.
-
-    Args:
-        json_string (str): The raw JSON response as a string.
-
-    Returns:
-        str: A formatted string of the first 5 search results.
-    """
     try:
         json_data = json.loads(json_string)
         items = json_data.get("items", [])
-        filtered_data = []
-
-        # Extract relevant fields from each search result
-        for item in items:
-            filtered_data.append({
+        filtered_data = [
+            {
                 "title": item.get("title"),
                 "snippet": item.get("snippet"),
                 "link": item.get("link"),
                 "hcard": item.get("pagemap", {})
-            })
+            }
+            for item in items
+        ]
+        return filtered_data
+    except json.JSONDecodeError:
+        return {"error": "Error decoding JSON"}
 
-        # Format the results for readability
-        formatted_results = "\n\n".join([
-            f"Title: {entry['title']}\nSnippet: {entry['snippet']}\nLink: {entry['link']}\nHCARD: {entry['hcard']}"
-            for entry in filtered_data
-        ])
-
-        return formatted_results
-
-    except json.JSONDecodeError as e:
-        print(f"Error decoding JSON: {e}")
-        return ""
-    except Exception as e:
-        print(f"Error parsing results: {e}")
-        return ""
-
-
-# Function to save data to a file
-def save_to_file(data, filename):
-    """
-    Saves data to a specified file.
-
-    Args:
-        data (str): The data to save.
-        filename (str): The name of the file.
-    """
-    try:
-        with open(filename, 'w', encoding='utf-8') as file:
-            file.write(data)
-        print(f"Data successfully written to {filename}")
-    except Exception as e:
-        print(f"An error occurred while writing to file: {e}")
-
-
-# Function to get chat response
-def get_chat_response(chat: ChatSession, prompt: str):
-    """
-    Sends the prompt to the chat session and returns the response.
-
-    Args:
-        chat (ChatSession): The chat session.
-        prompt (str): The prompt to send.
-
-    Returns:
-        str: The response from the chat.
-    """
+# Chat Response Function
+def get_chat_response(chat, prompt):
     response = chat.send_message(prompt)
     return response.text
 
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-# Main function to orchestrate the search and result processing
-def main():
-    """
-    Main function to handle user input, perform the search, and display results.
-    """
-    query = input("Enter the person's name to search: ")
+# Flask Route for Search
+@app.route('/search', methods=['POST'])
+def search():
+    data = request.json
+    query = data.get('query')
+    if not query:
+        return jsonify({"error": "Query parameter is missing"}), 400
+
     html = google_search(query)
+    if "error" in html:
+        return jsonify(html), 500
 
-    if html:
-        save_to_file(html, 'search_results.json')
-        results = parse_results(html)
-        prompt = f"""
-        Summarize the following search results about {query} into a concise paragraph. Focus on key details such as the person's roles, achievements, affiliations, and any notable aspects from the provided links. Ensure the summary is coherent and avoids redundancy.
+    results = parse_results(html)
+    if "error" in results:
+        return jsonify(results), 500
 
-        {results}
+    prompt = f"""
+    Summarize the following search results about {query} into a concise paragraph. Focus on key details such as the person's roles, achievements, affiliations, and any notable aspects from the provided links. Ensure the summary is coherent and avoids redundancy.
 
-        1. Limit the summary to 100 words.
-        2. If the results mention more than one person, prioritize the topmost result.
-        3. If the query does not pertain to a person, explicitly mention that in the summary.
-        """
-        print(get_chat_response(chat, prompt))
-    else:
-        print("No results to display.")
+    {results}
 
+    1. Limit the summary to 100 words.
+    2. If the results mention more than one person, prioritize the topmost result.
+    3. If the query does not pertain to a person, explicitly mention that in the summary.
+    4. Give invalid response if search is not about any person.
+    5. also capture image url of the person and provide it in the response.
+    """
+    summary = get_chat_response(chat, prompt)
+    print(summary)
+    return jsonify({"query": query, "results": results, "summary": summary})
 
-# Entry point of the script
-if __name__ == "__main__":
-    # Retrieve API credentials from environment variables
-    API_KEY = os.getenv('API_KEY')
-    SEARCH_ENGINE_ID = os.getenv('SEARCH_ENGINE_ID')
-    PROJECT_ID = os.getenv('PROJECT_ID')
-    LOCATION = os.getenv('LOCATION')
-    vertexai.init(project=PROJECT_ID, location=LOCATION)
-    model = GenerativeModel("gemini-1.0-pro")
-    chat = model.start_chat()
-
-    if not API_KEY or not SEARCH_ENGINE_ID:
-        print("Error: Missing API_KEY or SEARCH_ENGINE_ID environment variables.")
-    else:
-        main()
+# Run the Flask App
+if __name__ == '__main__':
+    app.run(debug=True)
