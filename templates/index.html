@@ -61,56 +61,14 @@
     </style>
 </head>
 <body>
-    <h1>PersonaBrief</h1>
-    <form id="searchForm">
-        <input type="text" id="query" placeholder="Enter a person's name" required>
-        <button type="submit">Search</button>
+    <h1>PersonaBrief Search</h1>
+    {% if error %}
+        <p style="color: red;">{{ error }}</p>
+    {% endif %}
+    <form action="/summary" method="post">
+        <label for="name">Enter Person's Name:</label>
+        <input type="text" id="name" name="name" required>
+        <button type="submit">Get Summary</button>
     </form>
-    <div id="output" class="result" style="display: none;"></div>
-    <div id="error" class="error" style="display: none;"></div>
-
-    <script>
-        document.getElementById('searchForm').addEventListener('submit', async (event) => {
-            event.preventDefault();
-
-            const query = document.getElementById('query').value;
-            const outputDiv = document.getElementById('output');
-            const errorDiv = document.getElementById('error');
-
-            outputDiv.style.display = 'none';
-            errorDiv.style.display = 'none';
-
-            if (!query) {
-                errorDiv.textContent = 'Please enter a name.';
-                errorDiv.style.display = 'block';
-                return;
-            }
-
-            try {
-                const response = await fetch('/search', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ query })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Error: ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-
-                outputDiv.textContent = `\n\n${data.summary}`;
-                outputDiv.style.display = 'block';
-            } catch (error) {
-                errorDiv.textContent = error.message;
-                errorDiv.style.display = 'block';
-            }
-        });
-    </script>
 </body>
 </html>
