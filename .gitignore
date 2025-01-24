@@ -5,3 +5,4 @@ search_results.json
 *.pyo
 *.pyd
 *.pyw
+.env
