@@ -4,6 +4,18 @@ import os
 import json
 import vertexai
 from vertexai.preview.generative_models import GenerativeModel, ChatSession
+import re
+
+# Load environment variables
+API_KEY = os.getenv('API_KEY')
+SEARCH_ENGINE_ID = os.getenv('SEARCH_ENGINE_ID')
+PROJECT_ID = os.getenv('PROJECT_ID')
+LOCATION = os.getenv('LOCATION')
+
+# Initialize Vertex AI
+vertexai.init(project=PROJECT_ID, location=LOCATION)
+model = GenerativeModel("gemini-1.0-pro")
+chat = model.start_chat()
 
 app = Flask(__name__)
 
@@ -27,25 +39,7 @@ def google_search(query):
         print(f"Error during API request: {e}")
         return ""
 
-# Function to parse and extract summary and image URL
-def parse_summary_and_image(response):
-    """
-    Extracts the summary and image URL from the response text.
-    """
-    try:
-        # Example response format:
-        # "## Name: Summary details... Image URL: https://image-url.com"
-        if "Image URL:" in response:
-            parts = response.split("Image URL:")
-            summary = parts[0].strip()
-            image_url = parts[1].strip()
-            return summary, image_url
-        else:
-            return response, ""  # No image URL
-    except Exception as e:
-        print(f"Error parsing response: {e}")
-        return response, ""
-
+# Other functions and routes remain unchanged
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -60,42 +54,32 @@ def summary():
     html = google_search(name)
     if html:
         prompt = f"""
-         Summarize the following search results about {name} into a concise paragraph and provide the image URL if available. Return the response as a JSON object with the following structure:
-         
+         Summarize the following search results about {name} into a concise paragraph and provide the image URL if available. Return the response strictly as a JSON object with the following structure:
         {{
-            "summary": "A concise paragraph summarizing the person's details atleast having 200 words.",
+            "summary": "A concise paragraph summarizing the person's details with at least 200 words. If the search results are not about a person, clearly state: 'The search results are not about a person.'",
             "image_url": "URL of the image, or an empty string if not available."
         }}
-
-        If the search results are not about a person, identify the subject and return a message indicating that the results are not about a person. 
-        
-        Search Results:
-        {html}
+        Important Instructions:
+            1.Carefully analyze the search results to determine if they pertain to a person. If they do not, explicitly state this in the summary field and avoid generating details unrelated to the input.
+            2.Do not infer or assume information that is not present in the search results.
+            3.Responses must strictly adhere to the JSON format.
+            Search Results: {html}
         """
         chat_response = chat.send_message(prompt).text
         print(chat_response)
-        cleaned_response = chat_response.strip().replace('\n', ' ').replace('  ', ' ')
+        response = chat_response.strip().replace('\n', ' ').replace('  ', ' ')
+        match = re.search(r'\{.*\}', response, re.DOTALL)
+        if match:
+            json_string = match.group(0)
 
         try:
             # Parse the JSON response
-            response_data = json.loads(cleaned_response.lstrip("```json").rstrip("```"))
-            print(response_data)
-            summary = response_data.get("summary", "No summary available.")
-            image_url = response_data.get("image_url", "")
+            json_data = json.loads(json_string)
+            summary = json_data.get("summary", "No summary available.")
+            image_url = json_data.get("image_url", "")
             return render_template('summary.html', summary=summary, image_url=image_url)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            print(f"Error during JSON parsing: {e}")
             return render_template('index.html', error="Failed to parse the response from the LLM.")
     else:
         return render_template('index.html', error="No results found.")
-
-
-if __name__ == "__main__":
-    API_KEY = os.getenv('API_KEY')
-    SEARCH_ENGINE_ID = os.getenv('SEARCH_ENGINE_ID')
-    PROJECT_ID = os.getenv('PROJECT_ID')
-    LOCATION = os.getenv('LOCATION')
-    vertexai.init(project=PROJECT_ID, location=LOCATION)
-    model = GenerativeModel("gemini-1.0-pro")
-    chat = model.start_chat()
-
-    app.run(debug=True)
