@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: persona-brief
+  namespace: persona-brief
+  labels:
+    app: persona-brief
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: persona-brief
+  template:
+    metadata:
+      labels:
+        app: persona-brief
+    spec:
+      serviceAccountName: persona-brief-ksa  # Workload Identity-enabled SA
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: persona-brief
+        image: us-central1-docker.pkg.dev/skillful-octane-360205/persona-brief/llm-app:v1  # Replace with your GCR image
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        env:
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: persona-brief-secret
+              key: API_KEY
+        - name: SEARCH_ENGINE_ID
+          valueFrom:
+            secretKeyRef:
+              name: persona-brief-secret
+              key: SEARCH_ENGINE_ID
+        - name: PROJECT_ID
+          valueFrom:
+            secretKeyRef:
+              name: persona-brief-secret
+              key: PROJECT_ID
+        - name: LOCATION
+          valueFrom:
+            secretKeyRef:
+              name: persona-brief-secret
+              key: LOCATION
+        resources:
+          requests:
+            memory: "1024Mi"
+          limits:
+            memory: "1024Mi"

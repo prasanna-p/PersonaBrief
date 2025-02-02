@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: persona-brief-service
+  namespace: persona-brief
+spec:
+  selector:
+    app: persona-brief
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP

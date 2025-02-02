@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: persona-brief-ingress
+  namespace: persona-brief
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"  # If using cert-manager for SSL
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+      - k8spro.dev
+    secretName: persona-brief-tls 
+  rules:
+  - host: k8spro.dev
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: persona-brief-service  # Your Service name
+            port:
+              number: 80  # Match your service port
