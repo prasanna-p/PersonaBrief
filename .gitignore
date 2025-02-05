@@ -5,4 +5,13 @@ search_results.json
 *.pyo
 *.pyd
 *.pyw
-.env.env
+.env
+*.hcl
+*.tfstate
+*.tfstate.backup
+*.tfstate.backup.*
+*.tfvars
+*.terraform
+*.terraform.lock.hcl
+k8s/commands.txt
+k8s/secret.yaml
