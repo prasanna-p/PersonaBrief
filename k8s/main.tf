@@ -3,6 +3,10 @@ provider "google" {
   region  = "us-central1"
 }
 
+locals {
+  native_cidr = data.google_container_cluster.primary.cluster_ipv4_cidr
+}
+
 data "google_client_config" "default" {}
 
 # Fetch Cluster Info
@@ -44,7 +48,7 @@ resource "google_container_node_pool" "primary_nodes" {
   name       = "primary-node-pool"
   cluster    = google_container_cluster.primary.id
   location   = google_container_cluster.primary.location
-  node_count = 1
+  node_count = 2
 
   node_config {
     preemptible  = true
@@ -55,6 +59,13 @@ resource "google_container_node_pool" "primary_nodes" {
 
     workload_metadata_config {
       mode = "GKE_METADATA"
+    }
+
+    # Apply Cilium-required taint
+    taint {
+      key    = "node.cilium.io/agent-not-ready"
+      value  = "true"
+      effect = "NO_EXECUTE"
     }
   }
 }
@@ -87,9 +98,67 @@ resource "google_service_account_iam_binding" "workload_identity" {
   ]
 }
 
-# ✅ Install Nginx Ingress Controller (First)
+# ✅ Install Cilium (First)
+resource "helm_release" "cilium" {
+  name       = "cilium"
+  namespace  = "kube-system"
+  repository = "https://helm.cilium.io/"
+  chart      = "cilium"
+  version    = "1.17.0"
+  create_namespace = true
+
+  set {
+    name  = "kubeProxyReplacement"
+    value = "true"
+  }
+
+  set {
+    name  = "nodeinit.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "cni.chainingMode"
+    value = "none"
+  }
+
+  set {
+    name  = "ipam.mode"
+    value = "kubernetes"
+  }
+
+  set {
+    name = "nodeinit.reconfigureKubelet"
+    value = "true"
+  }
+
+  set {
+    name = "nodeinit.removeCbrBridge"
+    value = "true"
+  }
+
+  set {
+    name = "cni.binPath"
+    value = "/home/kubernetes/bin"
+  }
+
+  set {
+    name = "ipv4NativeRoutingCIDR"
+    value = local.native_cidr
+  }
+
+  set {
+  name  = "hubble.relay.enabled"
+  value = "true"
+  }
+
+  depends_on = [google_container_cluster.primary, google_container_node_pool.primary_nodes]
+}
+
+# ✅ Install Nginx Ingress Controller (After Cilium)
 resource "helm_release" "nginx_ingress" {
   name       = "nginx-ingress"
+  namespace  = "ingress-nginx"
   repository = "https://kubernetes.github.io/ingress-nginx"
   chart      = "ingress-nginx"
   version    = "4.10.0"
@@ -102,6 +171,8 @@ controller:
       cloud.google.com/load-balancer-type: "External"
 EOF
   ]
+
+  depends_on = [helm_release.cilium]
 }
 
 # ✅ Install Cert-Manager (Depends on Ingress)
@@ -118,41 +189,15 @@ resource "helm_release" "cert_manager" {
     value = "true"
   }
 
-  depends_on = [helm_release.nginx_ingress] # Cert-manager needs Ingress first
+  depends_on = [helm_release.nginx_ingress]
 }
-
-# ✅ Create Let's Encrypt ClusterIssuer (Depends on Cert-Manager)
-# resource "kubernetes_manifest" "letsencrypt_cluster_issuer" {
-#   depends_on = [helm_release.cert_manager] # ClusterIssuer needs Cert-Manager
-
-#   manifest = {
-#     apiVersion = "cert-manager.io/v1"
-#     kind       = "ClusterIssuer"
-#     metadata = {
-#       name = "letsencrypt-prod"
-#     }
-#     spec = {
-#       acme = {
-#         email  = "prasannap.jon@gmail.com"
-#         server = "https://acme-v02.api.letsencrypt.org/directory"
-#         privateKeySecretRef = {
-#           name = "letsencrypt-prod"
-#         }
-#         solvers = [
-#           {
-#             http01 = {
-#               ingress = {
-#                 class = "nginx"
-#               }
-#             }
-#           }
-#         ]
-#       }
-#     }
-#   }
-# }
 
 # Define Variables
 variable "project_id" {
   description = "GCP Project ID"
+}
+
+variable "native_cidr" {
+  description = "Cluster IPv4 CIDR for Cilium"
+  type        = string
 }
