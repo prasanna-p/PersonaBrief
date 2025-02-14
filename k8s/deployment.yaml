@@ -22,7 +22,7 @@ spec:
         fsGroup: 1000
       containers:
       - name: persona-brief
-        image: us-central1-docker.pkg.dev/skillful-octane-360205/persona-brief/llm-app:v2  # Replace with your GCR image
+        image: us-central1-docker.pkg.dev/skillful-octane-360205/persona-brief/llm-app:v3  # Replace with your GCR image
         imagePullPolicy: Always
         ports:
         - containerPort: 8000
