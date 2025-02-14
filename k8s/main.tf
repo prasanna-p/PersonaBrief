@@ -152,6 +152,21 @@ resource "helm_release" "cilium" {
   value = "true"
   }
 
+  set {
+  name  = "prometheus.enabled"
+  value = "true"
+  }
+
+  set {
+  name  = "operator.prometheus.enabled"
+  value = "true"
+  }
+
+  set {
+  name  = "hubble.metrics.enableOpenMetrics"
+  value = "true"
+  }
+
   depends_on = [google_container_cluster.primary, google_container_node_pool.primary_nodes]
 }
 
