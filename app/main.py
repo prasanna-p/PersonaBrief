@@ -14,7 +14,7 @@ LOCATION = os.getenv('LOCATION')
 
 # Initialize Vertex AI
 vertexai.init(project=PROJECT_ID, location=LOCATION)
-model = GenerativeModel("gemini-1.0-pro")
+model = GenerativeModel("gemini-1.5-pro")
 chat = model.start_chat()
 
 app = Flask(__name__)
@@ -51,12 +51,13 @@ def summary():
         return render_template('index.html', error="Please enter a valid name.")
 
     # Perform Google search and process the results
+    # input = f"search about a person named {name}"
     html = google_search(name)
     if html:
         prompt = f"""
          Summarize the following search results about {name} into a concise paragraph and provide the image URL if available. Return the response strictly as a JSON object with the following structure:
         {{
-            "summary": "A concise paragraph summarizing the person's details with at least 200 words. If the search results are not about a person, clearly state: 'The search results are not about a person.'",
+            "summary": "A concise paragraph summarizing the person's details with not more than 200 words. If the search results are not about a person, clearly state: 'The search results are not about a person.'",
             "image_url": "URL of the image, or an empty string if not available."
         }}
         Important Instructions:
