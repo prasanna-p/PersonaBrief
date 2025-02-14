@@ -13,3 +13,5 @@ search_results.json
 *.tfvars
 *.terraform
 *.terraform.lock.hcl
+k8s/commands.txt
+k8s/secret.yaml
