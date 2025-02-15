@@ -15,3 +15,4 @@ search_results.json
 *.terraform.lock.hcl
 k8s/commands.txt
 k8s/secret.yaml
+values.yaml

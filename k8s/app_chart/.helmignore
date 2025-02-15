@@ -1,0 +1,6 @@
+# Ignore files to reduce chart size
+.DS_Store
+*.log
+*.tmp
+.git/
+*.md
