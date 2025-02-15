@@ -1,0 +1,70 @@
+replicaCount: 2
+
+releaseName: persona-brief
+namespace: ${NAMESPACE}
+
+image:
+  repository: ${REPO_NAME}
+  tag: ${TAG}
+  pullPolicy: IfNotPresent
+
+hostName: ${HOST_NAME_URL}
+
+ingress:
+  enabled: true
+  name: persona-brief-ingress
+  ingressClassName: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rewrite-target: "/"
+  tls:
+    enabled: true
+    secretName: persona-brief-tls
+    hosts:
+      - ${HOST_NAME_URL}
+  rules:
+    host: ${HOST_NAME_URL}
+    path: /
+    pathType: Prefix
+    service:
+      name: persona-brief-service
+      port: 80
+
+serviceAccount:
+  create: true
+  name: ${SERVICE_ACCOUNT}
+
+secret:
+  enabled: true
+  name: "persona-brief-secret"
+  data:
+    apiKey: "${API_KEY}"
+    searchEngineId: "${SEARCH_ENGINE_ID}"
+    projectId: "${PROJECT_ID}"
+    location: "${LOCATION}"
+
+resources:
+  requests:
+    memory: "1024Mi"
+  limits:
+    memory: "1024Mi"
+
+service:
+  name: persona-brief-service
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+clusterIssuer:
+  name: letsencrypt-prod
+  email: ${USER_EMAIL}
+  server: https://acme-v02.api.letsencrypt.org/directory
+  privateKeySecretName: persona-issuer-secret
+  ingressClassName: nginx
+
+certificate:
+  name: "persona-brief-certificate"
+  secretName: "persona-brief-tls"
+  issuerRef:
+    name: "letsencrypt-prod"
+    kind: "ClusterIssuer"

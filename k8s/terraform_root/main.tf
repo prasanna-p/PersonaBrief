@@ -1,8 +1,3 @@
-provider "google" {
-  project = var.project_id
-  region  = "us-central1"
-}
-
 locals {
   native_cidr = data.google_container_cluster.primary.cluster_ipv4_cidr
 }
@@ -16,27 +11,15 @@ data "google_container_cluster" "primary" {
   depends_on = [google_container_cluster.primary]
 }
 
-provider "kubernetes" {
-  host                   = "https://${data.google_container_cluster.primary.endpoint}"
-  token                  = data.google_client_config.default.access_token
-  cluster_ca_certificate = base64decode(data.google_container_cluster.primary.master_auth[0].cluster_ca_certificate)
-}
-
-provider "helm" {
-  kubernetes {
-    host                   = data.google_container_cluster.primary.endpoint
-    token                  = data.google_client_config.default.access_token
-    cluster_ca_certificate = base64decode(data.google_container_cluster.primary.master_auth.0.cluster_ca_certificate)
-  }
-}
-
 # Create GKE Cluster
 resource "google_container_cluster" "primary" {
-  name     = "persona-brief-cluster"
-  location = "us-central1-a"
+  name     = var.cluster_name
+  location = var.zone
 
   remove_default_node_pool = true
   initial_node_count       = 1
+
+  deletion_protection = false  # ✅ Prevents the error during 'terraform destroy'
 
   workload_identity_config {
     workload_pool = "${var.project_id}.svc.id.goog"
@@ -45,14 +28,14 @@ resource "google_container_cluster" "primary" {
 
 # Create a Node Pool
 resource "google_container_node_pool" "primary_nodes" {
-  name       = "primary-node-pool"
+  name       = var.node_pool_name
   cluster    = google_container_cluster.primary.id
   location   = google_container_cluster.primary.location
   node_count = 2
 
   node_config {
     preemptible  = true
-    machine_type = "e2-standard-2"
+    machine_type = var.machine_type
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
     ]
@@ -73,39 +56,64 @@ resource "google_container_node_pool" "primary_nodes" {
 # Create Kubernetes Namespace
 resource "kubernetes_namespace" "persona_namespace" {
   metadata {
-    name = "persona-brief"
+    name = var.namespace
   }
+}
+
+# Create GCP service account
+resource "google_service_account" "persona_sa" {
+  account_id   = var.service_account_name
+  display_name = var.service_account_name
+
+  
+}
+
+# Assign artifact registry role
+resource "google_project_iam_member" "artifact_registry_reader" {
+  project = var.project_id
+  role    = "roles/artifactregistry.reader"
+  member  = "serviceAccount:${google_service_account.persona_sa.email}"
+
+  
+}
+
+# Assign Vertex Ai user role
+resource "google_project_iam_member" "vertex_ai_user" {
+  project = var.project_id
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${google_service_account.persona_sa.email}"
+
+  
 }
 
 # Create Kubernetes Service Account
 resource "kubernetes_service_account" "ksa" {
   metadata {
-    name      = "persona-brief-ksa"
-    namespace = kubernetes_namespace.persona_namespace.metadata[0].name
+    name      = var.ksa_name
+    namespace = var.namespace
     annotations = {
-      "iam.gke.io/gcp-service-account" = "personabrief@skillful-octane-360205.iam.gserviceaccount.com"
+      "iam.gke.io/gcp-service-account" = google_service_account.persona_sa.email
     }
   }
 }
 
 # IAM Binding for Workload Identity
 resource "google_service_account_iam_binding" "workload_identity" {
-  service_account_id = "projects/skillful-octane-360205/serviceAccounts/personabrief@skillful-octane-360205.iam.gserviceaccount.com"
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${google_service_account.persona_sa.email}"
   role               = "roles/iam.workloadIdentityUser"
 
   members = [
-    "serviceAccount:skillful-octane-360205.svc.id.goog[persona-brief/persona-brief-ksa]"
+    "serviceAccount:${var.project_id}.svc.id.goog[${var.namespace}/${var.ksa_name}]"
   ]
 }
 
-# ✅ Install Cilium (First)
+# ✅ Install Helm Charts
 resource "helm_release" "cilium" {
   name       = "cilium"
   namespace  = "kube-system"
   repository = "https://helm.cilium.io/"
   chart      = "cilium"
   version    = "1.17.0"
-  create_namespace = true
 
   set {
     name  = "kubeProxyReplacement"
@@ -170,7 +178,6 @@ resource "helm_release" "cilium" {
   depends_on = [google_container_cluster.primary, google_container_node_pool.primary_nodes]
 }
 
-# ✅ Install Nginx Ingress Controller (After Cilium)
 resource "helm_release" "nginx_ingress" {
   name       = "nginx-ingress"
   namespace  = "ingress-nginx"
@@ -190,7 +197,6 @@ EOF
   depends_on = [helm_release.cilium]
 }
 
-# ✅ Install Cert-Manager (Depends on Ingress)
 resource "helm_release" "cert_manager" {
   name       = "cert-manager"
   namespace  = "cert-manager"
@@ -205,14 +211,4 @@ resource "helm_release" "cert_manager" {
   }
 
   depends_on = [helm_release.nginx_ingress]
-}
-
-# Define Variables
-variable "project_id" {
-  description = "GCP Project ID"
-}
-
-variable "native_cidr" {
-  description = "Cluster IPv4 CIDR for Cilium"
-  type        = string
 }

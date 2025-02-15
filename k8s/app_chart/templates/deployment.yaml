@@ -1,54 +1,54 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: persona-brief
-  namespace: persona-brief
+  name: {{ .Values.releaseName }}
+  namespace: {{ .Values.namespace }}
   labels:
-    app: persona-brief
+    app: {{ .Chart.Name }}
 spec:
-  replicas: 2
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: persona-brief
+      app: {{ .Chart.Name }}
   template:
     metadata:
       labels:
-        app: persona-brief
+        app: {{ .Chart.Name }}
     spec:
-      serviceAccountName: persona-brief-ksa  # Workload Identity-enabled SA
+      serviceAccountName: {{ .Values.serviceAccount.name }}
       securityContext:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
       containers:
-      - name: persona-brief
-        image: us-central1-docker.pkg.dev/skillful-octane-360205/persona-brief/llm-app:v3  # Replace with your GCR image
-        imagePullPolicy: Always
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - containerPort: 8000
         env:
         - name: API_KEY
           valueFrom:
             secretKeyRef:
-              name: persona-brief-secret
+              name: {{ .Values.secret.name }}
               key: API_KEY
         - name: SEARCH_ENGINE_ID
           valueFrom:
             secretKeyRef:
-              name: persona-brief-secret
+              name: {{ .Values.secret.name }}
               key: SEARCH_ENGINE_ID
         - name: PROJECT_ID
           valueFrom:
             secretKeyRef:
-              name: persona-brief-secret
+              name: {{ .Values.secret.name }}
               key: PROJECT_ID
         - name: LOCATION
           valueFrom:
             secretKeyRef:
-              name: persona-brief-secret
+              name: {{ .Values.secret.name }}
               key: LOCATION
         resources:
           requests:
-            memory: "1024Mi"
+            memory: "{{ .Values.resources.requests.memory }}"
           limits:
-            memory: "1024Mi"
+            memory: "{{ .Values.resources.limits.memory }}"
