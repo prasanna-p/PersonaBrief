@@ -6,7 +6,6 @@ import vertexai
 from vertexai.preview.generative_models import GenerativeModel, ChatSession
 import re
 from requests.exceptions import RequestException, Timeout
-from datetime import datetime
 
 # Load environment variables
 API_KEY = os.getenv('API_KEY')
@@ -79,10 +78,7 @@ def summary():
         return render_template('index.html', error="Please enter a valid name.")
 
     # Perform Google search and process the results
-    # input = f"search about a person named {name}"
     html = google_search(name)
-    with open("search_results.json", 'w', encoding='utf-8') as file:
-            file.write(html)
     if html:
         prompt = f"""
          Summarize the following search results about {name} into a concise paragraph and provide the image URL if available. Return the response strictly as a JSON object with the following structure:
@@ -97,7 +93,6 @@ def summary():
             Search Results: {html}
         """
         chat_response = chat.send_message(prompt).text
-        print(chat_response)
         response = chat_response.strip().replace('\n', ' ').replace('  ', ' ')
         match = re.search(r'\{.*\}', response, re.DOTALL)
         if match:
