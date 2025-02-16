@@ -5,6 +5,8 @@ import json
 import vertexai
 from vertexai.preview.generative_models import GenerativeModel, ChatSession
 import re
+from requests.exceptions import RequestException, Timeout
+from datetime import datetime
 
 # Load environment variables
 API_KEY = os.getenv('API_KEY')
@@ -21,23 +23,49 @@ app = Flask(__name__)
 
 # Function to perform a Google Custom Search
 def google_search(query):
+    result_count = 3
     url = "https://www.googleapis.com/customsearch/v1"
     params = {
         "key": API_KEY,
         "cx": SEARCH_ENGINE_ID,
         "q": query,
-        "num": 4
+        "num": result_count,
     }
     headers = {
         "User-Agent": "Mozilla/5.0"
     }
     try:
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.get(url, headers=headers, params=params, timeout=10)
         response.raise_for_status()
-        return response.text
-    except requests.exceptions.RequestException as e:
-        print(f"Error during API request: {e}")
-        return ""
+        result = response.json()
+
+        snippets = recursive_extract(result, 'snippet')
+        og_images = recursive_extract(result, 'og:image')
+
+        llm_input = {
+            "snippet": " ".join(snippets),
+            "image_urls": og_images
+        }
+
+        return json.dumps(llm_input, indent=2)
+
+    except (Timeout, RequestException) as e:
+        return json.dumps({"error": f"API request failed: {e}"}, indent=2)
+
+
+# Function to recursively extract values from a JSON object
+def recursive_extract(json_obj, key):
+    results = []
+    if isinstance(json_obj, dict):
+        for k, v in json_obj.items():
+            if k == key:
+                results.append(v)
+            elif isinstance(v, (dict, list)):
+                results.extend(recursive_extract(v, key))
+    elif isinstance(json_obj, list):
+        for item in json_obj:
+            results.extend(recursive_extract(item, key))
+    return results
 
 # Other functions and routes remain unchanged
 @app.route('/')
@@ -53,12 +81,14 @@ def summary():
     # Perform Google search and process the results
     # input = f"search about a person named {name}"
     html = google_search(name)
+    with open("search_results.json", 'w', encoding='utf-8') as file:
+            file.write(html)
     if html:
         prompt = f"""
          Summarize the following search results about {name} into a concise paragraph and provide the image URL if available. Return the response strictly as a JSON object with the following structure:
         {{
             "summary": "A concise paragraph summarizing the person's details with not more than 200 words. If the search results are not about a person, clearly state: 'The search results are not about a person.'",
-            "image_url": "URL of the image, or an empty string if not available."
+            "image_url": "URL of the image, or an empty string if not available. Ensure the URL is publicly accessible. and preferably in JPEG or PNG format. If URL is not identifiable return first iterm in the image_urls list."
         }}
         Important Instructions:
             1.Carefully analyze the search results to determine if they pertain to a person. If they do not, explicitly state this in the summary field and avoid generating details unrelated to the input.
