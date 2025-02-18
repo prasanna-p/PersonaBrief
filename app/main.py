@@ -99,7 +99,7 @@ def summary():
             json_string = match.group(0)
 
         try:
-            # Parse the JSON response
+            # Parse the JSON response test
             json_data = json.loads(json_string)
             summary = json_data.get("summary", "No summary available.")
             image_url = json_data.get("image_url", "")
