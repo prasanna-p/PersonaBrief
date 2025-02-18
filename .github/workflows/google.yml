@@ -39,6 +39,11 @@ on:
       - '"main"'
     paths:
       - 'app/**'
+  pull_request:
+    branches:
+      - '"main"'
+    paths:
+      - 'app/**'
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }} # TODO: update to your Google Cloud project ID
