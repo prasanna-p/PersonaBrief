@@ -48,7 +48,7 @@ env:
   REPOSITORY: ${{ secrets.REPO_NAME }}
   IMAGE: ${{ secrets.IMAGE }}
   AUDIENCE: ${{ secrets.AUDIENCE }}
-  
+  GCLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
 
 jobs:
   setup-build-publish-deploy:
