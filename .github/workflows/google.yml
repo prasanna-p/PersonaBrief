@@ -34,16 +34,12 @@
 name: 'Build and Deploy to GKE'
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'app/**'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'app/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment (e.g., dev, prod)'
+        required: true
+        default: 'dev'
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }} # TODO: update to your Google Cloud project ID
