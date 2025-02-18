@@ -36,12 +36,12 @@ name: 'Build and Deploy to GKE'
 on:
   push:
     branches:
-      - '"main"'
+      - main
     paths:
       - 'app/**'
   pull_request:
     branches:
-      - '"main"'
+      - main
     paths:
       - 'app/**'
 
