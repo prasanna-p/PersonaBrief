@@ -9,16 +9,20 @@ on:
         default: 'dev'
 
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  PROJECT_ID: ${{ secrets.PROJECT_ID }}
   WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
-  GAR_LOCATION: ${{ secrets.LOCATION }}
+  LOCATION: ${{ secrets.LOCATION }}
   REPOSITORY: ${{ secrets.REPO_NAME }}
   IMAGE: ${{ secrets.IMAGE }}
-  GCLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
-  ZONE_ID: ${{ secrets.ZONE_ID }}
+  ZONE: ${{ secrets.ZONE }}
   CLUSTER_NAME: ${{ secrets.CLUSTER_NAME }}
   GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
   API_KEY: ${{ secrets.API_KEY }}
+  SERVICE_ACCOUNT: ${{ secrets.SERVICE_ACCOUNT }}
+  SEARCH_ENGINE_ID: ${{ secrets.SEARCH_ENGINE_ID }}
+  HOST_NAME_URL: ${{ secrets.HOST_NAME_URL }}
+  NAMESPACE: ${{ secrets.NAMESPACE }}
+  USER_EMAIL: ${{ secrets.USER_EMAIL }}
 
 jobs:
   setup-build-publish-deploy:
@@ -33,18 +37,7 @@ jobs:
     steps:
       - name: 'Checkout Repository'
         uses: actions/checkout@v4
-
-      - name: 'Create .env File Securely'
-        run: |
-          echo "${{ secrets.ENV_FILE }}" > .env
-          echo ".env file created"
-
-      - name: 'Load Environment Variables'
-        run: |
-          set -a  # Automatically export variables
-          export $(grep -v '^#' .env | xargs)
-          set +a
-          echo "Environment Variables Loaded"
+        
 
       - name: 'Authenticate to Google Cloud'
         uses: google-github-actions/auth@v2
@@ -54,17 +47,17 @@ jobs:
 
       - name: 'Authenticate Docker to Artifact Registry'
         run: |
-          gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev --quiet
+          gcloud auth configure-docker ${{ env.LOCATION }}-docker.pkg.dev --quiet
 
       - name: 'Set up GKE credentials'
         uses: google-github-actions/get-gke-credentials@v2
         with:
           cluster_name: '${{ env.CLUSTER_NAME }}'
-          location: '${{ env.ZONE_ID }}'
+          location: '${{ env.ZONE }}'
 
       - name: 'Build and Push Docker Image'
         run: |
-          DOCKER_TAG="${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }}"
+          DOCKER_TAG="${{ env.LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }}"
           
           docker build --tag "$DOCKER_TAG" ./app
           
@@ -72,7 +65,7 @@ jobs:
 
       - name: 'Prepare Helm Values'
         run: |
-          export REPO_NAME="${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}"
+          export REPO_NAME="${{ env.LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}"
           export TAG="${{ github.sha }}"
           envsubst < ./k8s/values.template.yaml > ./k8s/app_chart/values.yaml
           cat ./k8s/app_chart/values.yaml
