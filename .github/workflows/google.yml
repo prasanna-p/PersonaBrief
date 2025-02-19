@@ -113,16 +113,19 @@ jobs:
           cluster_name: '${{ env.CLUSTER_NAME }}'
           location: '${{ env.ZONE_ID }}'
 
-      # Build the Docker image
+      #build the docker image
       - name: 'Build and push Docker container'
         run: |
-          DOCKER_TAG="us-central1.pkg.dev/peak-stream-449519-r4/persona-app/llm-app:${{ github.sha }}"
-          docker build \
-            --tag "${DOCKER_TAG}" \
-            ./app
-
-          echo "$DOCKER_TAG"
+          DOCKER_TAG="us-central1.pkg.dev/peak-stream-449519-r4/persona-app/llm-app:$GITHUB_SHA"
+          
+          echo "Generated Docker tag: $DOCKER_TAG"
+          
+          docker build --tag "$DOCKER_TAG" ./app
+          
+          echo "Docker tag before pushing: $DOCKER_TAG"
+          
           docker push "$DOCKER_TAG"
+
 
       # Set up envs for values.yaml
       - name: 'Set REPO_NAME And TAG'
