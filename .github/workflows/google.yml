@@ -116,7 +116,7 @@ jobs:
       #build the docker image
       - name: 'Build and push Docker container'
         run: |
-          DOCKER_TAG="us-central1.pkg.dev/peak-stream-449519-r4/persona-app/llm-app:$GITHUB_SHA"
+          DOCKER_TAG="us-central1-docker.pkg.dev/peak-stream-449519-r4/persona-app/llm-app:$GITHUB_SHA"
           
           echo "Generated Docker tag: $DOCKER_TAG"
           
