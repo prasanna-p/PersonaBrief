@@ -41,7 +41,7 @@ jobs:
       - name: 'Load Environment Variables'
         run: |
           set -a  # Automatically export variables
-          source .env
+          export $(grep -v '^#' .env | xargs)
           set +a
           echo "Environment Variables Loaded"
 
@@ -80,6 +80,7 @@ jobs:
       - name: 'Setup Namespace'
         run: |
           kubectl config set-context --current --namespace "$NAMESPACE"
+          helm list
           
 
       - name: 'Deploy with Helm'
