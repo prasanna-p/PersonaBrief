@@ -121,6 +121,7 @@ jobs:
             --tag "${DOCKER_TAG}" \
             ./app
 
+          echo "$DOCKER_TAG"
           docker push "$DOCKER_TAG"
 
       # Set up envs for values.yaml
