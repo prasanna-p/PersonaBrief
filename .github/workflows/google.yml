@@ -49,6 +49,7 @@ env:
   IMAGE: ${{ secrets.IMAGE }}
   AUDIENCE: ${{ secrets.AUDIENCE }}
   GCLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+  ZONE_ID: ${{ secrets.ZONE_ID }}
 
 jobs:
   setup-build-publish-deploy:
@@ -100,7 +101,7 @@ jobs:
         uses: 'google-github-actions/get-gke-credentials@6051de21ad50fbb1767bc93c11357a49082ad116' # google-github-actions/get-gke-credentials@v2
         with:
           cluster_name: '$CLUSTER_NAME'
-          location: '$ZONE'
+          location: '${{ env.ZONE_ID }}'
 
       # Build the Docker image
       - name: 'Build and push Docker container'
