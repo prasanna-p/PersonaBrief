@@ -18,6 +18,7 @@ env:
   ZONE_ID: ${{ secrets.ZONE_ID }}
   CLUSTER_NAME: ${{ secrets.CLUSTER_NAME }}
   GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+  API_KEY: ${{ secrets.API_KEY }}
 
 jobs:
   setup-build-publish-deploy:
