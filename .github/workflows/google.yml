@@ -67,12 +67,16 @@ jobs:
         run: |
           echo "${{ secrets.ENV_FILE }}" > .env
           echo ".env file created"
+          cat .env
 
       - name: Use .env File
         run: |
+          set -a  # Automatically export variables
           source .env
-          echo $ZONE
-          echo "Using environment variables"  # ✅ No secrets shown
+          set +a
+          echo "Using environment variables"
+          echo "ZONE: $ZONE"
+          echo "CLUSTER: $CLUSTER_NAME"
 
       - name: 'Checkout'
         uses: 'actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332' # actions/checkout@v4
