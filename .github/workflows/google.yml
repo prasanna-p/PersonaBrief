@@ -73,9 +73,9 @@ jobs:
         run: |
           REPO_NAME="${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}"
           TAG="${{ github.sha }}"
-          envsubst < helm/values.template.yaml > helm/values.yaml
+          envsubst < ./k8s/values.template.yaml > ./k8s/app_chart/values.yaml
 
       - name: 'Deploy with Helm'
         run: |
-          helm upgrade --install persona-brief helm \
-          --values helm/values.yaml --namespace "$NAMESPACE"
+          helm upgrade --install persona-brief .k8s/app_chart \
+          --values .k8s/app_chart/values.yaml --namespace "$NAMESPACE"
