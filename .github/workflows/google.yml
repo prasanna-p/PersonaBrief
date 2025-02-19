@@ -1,12 +1,12 @@
 name: 'Build and Deploy to GKE'
-
 on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Deployment environment (e.g., dev, prod)'
-        required: true
-        default: 'dev'
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+    paths:
+      - "app/**"
 
 env:
   PROJECT_ID: ${{ secrets.PROJECT_ID }}
@@ -68,7 +68,6 @@ jobs:
           export REPO_NAME="${{ env.LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}"
           export TAG="${{ github.sha }}"
           envsubst < ./k8s/values.template.yaml > ./k8s/app_chart/values.yaml
-          cat ./k8s/app_chart/values.yaml
 
           
       - name: 'Setup Namespace'
