@@ -115,15 +115,13 @@ jobs:
 
       # Build the Docker image
       - name: 'Build and push Docker container'
-        run: |-
-          DOCKER_TAG="us-central1.pkg.dev/peak-stream-449519-r4/persona-app/llm-app:${{ github.sha }}"
+        run: |
+          EXPORT DOCKER_TAG="us-central1.pkg.dev/peak-stream-449519-r4/persona-app/llm-app:${{ github.sha }}"
           docker build \
             --tag "${DOCKER_TAG}" \
-            --build-arg GITHUB_SHA="${GITHUB_SHA}" \
-            --build-arg GITHUB_REF="${GITHUB_REF}" \
             ./app
 
-          docker push "${DOCKER_TAG}"
+          docker push "$DOCKER_TAG"
 
       # Set up envs for values.yaml
       - name: 'Set REPO_NAME And TAG'
