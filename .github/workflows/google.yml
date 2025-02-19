@@ -77,5 +77,5 @@ jobs:
 
       - name: 'Deploy with Helm'
         run: |
-          helm upgrade --install persona-brief .k8s/app_chart \
+          helm upgrade --install persona-brief ./k8s/app_chart \
           --values .k8s/app_chart/values.yaml --namespace "$NAMESPACE"
