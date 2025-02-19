@@ -105,6 +105,7 @@ def summary():
             image_url = json_data.get("image_url", "")
             return render_template('summary.html', summary=summary, image_url=image_url)
         except json.JSONDecodeError as e:
+            # Handle JSON parsing errors
             print(f"Error during JSON parsing: {e}")
             return render_template('index.html', error="Failed to parse the response from the LLM.")
     else:
