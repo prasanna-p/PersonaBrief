@@ -104,7 +104,7 @@ jobs:
 
       - name: 'Setup Artifact Registry Authentication'
         run: |
-          gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev --quiet
+          gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
       # Get the GKE credentials so we can deploy to the cluster
       - name: 'Set up GKE credentials'
