@@ -75,7 +75,13 @@ jobs:
           TAG="${{ github.sha }}"
           envsubst < ./k8s/values.template.yaml > ./k8s/app_chart/values.yaml
 
+          
+      - name: 'Setup Namespace'
+        run: |
+          kubectl config set-context --current --namespace "$NAMESPACE"
+          
+
       - name: 'Deploy with Helm'
         run: |
           helm upgrade --install persona-brief ./k8s/app_chart \
-          --values ./k8s/app_chart/values.yaml --namespace "$NAMESPACE"
+          --values ./k8s/app_chart/values.yaml
