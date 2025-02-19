@@ -111,7 +111,7 @@ jobs:
       # Build the Docker image
       - name: 'Build and push Docker container'
         run: |-
-          DOCKER_TAG="${{ env.GAR_LOCATION }}.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }}"
+          DOCKER_TAG="us-central1.pkg.dev/peak-stream-449519-r4/persona-app/llm-app:${{ github.sha }}"
           docker build \
             --tag "${DOCKER_TAG}" \
             --build-arg GITHUB_SHA="${GITHUB_SHA}" \
