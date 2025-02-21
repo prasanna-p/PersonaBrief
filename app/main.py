@@ -15,7 +15,7 @@ LOCATION = os.getenv('LOCATION')
 
 # Initialize Vertex AI
 vertexai.init(project=PROJECT_ID, location=LOCATION)
-model = GenerativeModel("gemini-1.5-pro")
+model = GenerativeModel("gemini-pro")
 chat = model.start_chat()
 
 app = Flask(__name__)
