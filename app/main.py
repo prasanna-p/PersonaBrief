@@ -100,20 +100,27 @@ def summary():
 
         chat_response = chat.send_message(prompt).text
         response = chat_response.strip().replace('\n', ' ').replace('  ', ' ')
-        match = re.search(r'\{.*\}', response, re.DOTALL)
         print(response)
-        # Initialize json_string to avoid UnboundLocalError
-        json_string = " "
-        if match:
-            json_string = match.group(0)
-            # Escape backslashes
-            json_string = json_string.replace('\\', '\\\\')
-
         try:
-            # Parse the JSON response
-            json_data = json.loads(json_string)
-            summary = json_data.get("summary", "No summary available.")
-            image_url = json_data.get("image_url", "")
+            # 🔍 Extract "summary" and "image_url" using regex
+            summary = re.search(r'"summary"\s*:\s*"((?:[^"\\]|\\.)*)"', response)
+            image_url = re.search(r'"image_url"\s*:\s*"([^"]+)"', response)
+
+            # ✅ Extracted values or default messages
+            summary = summary.group(1).replace('\\"', '"') if summary else "No summary available."
+            image_url = image_url.group(1) if image_url else ""
+
+            # 🔧 Build clean JSON
+            json_data = {
+                "summary": summary,
+                "image_url": image_url
+            }
+
+            # Pretty print the result
+            print(json.dumps(json_data, indent=4))
+
+            summary = json_data.get("summary")
+            image_url = json_data.get("image_url")
             return render_template('summary.html', summary=summary, image_url=image_url)
         except json.JSONDecodeError as e:
             # Handle JSON parsing errors
@@ -123,3 +130,6 @@ def summary():
             # Handle cases where json_string is empty or invalid
             print(f"Unexpected error: {e}")
             return render_template('index.html', error="An unexpected error occurred.")
+        
+
+
