@@ -82,21 +82,23 @@ def summary():
     print(html)
     if html:
         prompt = f"""
-            Summarize the following search results about {name} into a concise paragraph and provide the image URL if available. Return the response strictly as a JSON object with the following structure:
-            {{
-                "summary": "A concise paragraph summarizing the person's details with not more than 200 words. If the search results are not about a person, clearly state: 'The search results are not about a person.'",
-                "image_url": "URL of the image, or an empty string if not available. Ensure the URL is publicly accessible, directly points to an image (JPEG or PNG preferred), and does not lead to placeholders or broken links. If validation isn't possible, select the first item from the image_urls list."
-            }}
+        Summarize the following search results about {name} into a concise paragraph and provide the image URL if available. Return the response strictly as a JSON object with the following structure:
+        {{
+            "summary": "A concise paragraph summarizing the person's details with not more than 200 words. If the search results are not about a person, clearly state: 'The search results are not about a person.'",
+            "image_url": "The most accurate URL of the image, or an empty string if not available. Ensure the URL is publicly accessible, directly points to an image (JPEG or PNG preferred), and does not lead to placeholders or broken links."
+        }}
 
-            Important Instructions:
-            1. Carefully analyze the search results to determine if they pertain to a person. If they do not, explicitly state this in the summary field and avoid generating details unrelated to the input.
-            2. Prioritize image URLs that are publicly accessible and end with standard image formats (.jpg, .jpeg, .png).
-            3. Avoid URLs leading to broken links, login pages, or placeholder images.
-            4. If no valid image URL can be confirmed, use the first entry from the image_urls list.
-            5. Responses must strictly adhere to the JSON format.
+        **Enhanced Image Selection Rules:**
+        1. **Prioritize URLs** containing keywords like `profile_images`, `avatar`, `headshot`, `official`, or the person's name.
+        2. Select images hosted on trusted platforms (e.g. wikipedia, Twitter, LinkedIn, Instagram) when available.
+        3. Ensure the image ends with `.jpg`, `.jpeg`, or `.png`, avoiding low-res thumbnails or placeholders.
+        4. If multiple valid images exist, **choose the one most likely to represent the person** (e.g., profile pictures over random photos).
+        5. If no valid image can be confirmed, **use the first entry** from the image_urls list.
+        6. Responses must strictly adhere to the JSON format.
 
-            Search Results: {html}
-            """
+        Search Results: {html}
+        """
+
 
         chat_response = chat.send_message(prompt).text
         response = chat_response.strip().replace('\n', ' ').replace('  ', ' ')
