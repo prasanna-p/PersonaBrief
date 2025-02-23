@@ -79,27 +79,38 @@ def summary():
 
     # Perform Google search and process the results
     html = google_search(name)
+    print(html)
     if html:
         prompt = f"""
-         Summarize the following search results about {name} into a concise paragraph and provide the image URL if available. Return the response strictly as a JSON object with the following structure:
-        {{
-            "summary": "A concise paragraph summarizing the person's details with not more than 200 words. If the search results are not about a person, clearly state: 'The search results are not about a person.'",
-            "image_url": "URL of the image, or an empty string if not available. Ensure the URL is publicly accessible. and preferably in JPEG or PNG format. If URL is not identifiable return first iterm in the image_urls list."
-        }}
-        Important Instructions:
-            1.Carefully analyze the search results to determine if they pertain to a person. If they do not, explicitly state this in the summary field and avoid generating details unrelated to the input.
-            2.Do not infer or assume information that is not present in the search results.
-            3.Responses must strictly adhere to the JSON format.
+            Summarize the following search results about {name} into a concise paragraph and provide the image URL if available. Return the response strictly as a JSON object with the following structure:
+            {{
+                "summary": "A concise paragraph summarizing the person's details with not more than 200 words. If the search results are not about a person, clearly state: 'The search results are not about a person.'",
+                "image_url": "URL of the image, or an empty string if not available. Ensure the URL is publicly accessible, directly points to an image (JPEG or PNG preferred), and does not lead to placeholders or broken links. If validation isn't possible, select the first item from the image_urls list."
+            }}
+
+            Important Instructions:
+            1. Carefully analyze the search results to determine if they pertain to a person. If they do not, explicitly state this in the summary field and avoid generating details unrelated to the input.
+            2. Prioritize image URLs that are publicly accessible and end with standard image formats (.jpg, .jpeg, .png).
+            3. Avoid URLs leading to broken links, login pages, or placeholder images.
+            4. If no valid image URL can be confirmed, use the first entry from the image_urls list.
+            5. Responses must strictly adhere to the JSON format.
+
             Search Results: {html}
-        """
+            """
+
         chat_response = chat.send_message(prompt).text
         response = chat_response.strip().replace('\n', ' ').replace('  ', ' ')
         match = re.search(r'\{.*\}', response, re.DOTALL)
+        print(response)
+        # Initialize json_string to avoid UnboundLocalError
+        json_string = " "
         if match:
             json_string = match.group(0)
+            # Escape backslashes
+            json_string = json_string.replace('\\', '\\\\')
 
         try:
-            # Parse the JSON response test
+            # Parse the JSON response
             json_data = json.loads(json_string)
             summary = json_data.get("summary", "No summary available.")
             image_url = json_data.get("image_url", "")
@@ -108,5 +119,7 @@ def summary():
             # Handle JSON parsing errors
             print(f"Error during JSON parsing: {e}")
             return render_template('index.html', error="Failed to parse the response from the LLM.")
-    else:
-        return render_template('index.html', error="No results found.")
+        except Exception as e:
+            # Handle cases where json_string is empty or invalid
+            print(f"Unexpected error: {e}")
+            return render_template('index.html', error="An unexpected error occurred.")
