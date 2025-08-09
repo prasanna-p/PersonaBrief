@@ -107,77 +107,6 @@ resource "google_service_account_iam_binding" "workload_identity" {
   ]
 }
 
-# ✅ Install Helm Charts
-resource "helm_release" "cilium" {
-  name       = "cilium"
-  namespace  = "kube-system"
-  repository = "https://helm.cilium.io/"
-  chart      = "cilium"
-  version    = "1.17.0"
-
-  set {
-    name  = "kubeProxyReplacement"
-    value = "true"
-  }
-
-  set {
-    name  = "nodeinit.enabled"
-    value = "true"
-  }
-
-  set {
-    name  = "cni.chainingMode"
-    value = "none"
-  }
-
-  set {
-    name  = "ipam.mode"
-    value = "kubernetes"
-  }
-
-  set {
-    name = "nodeinit.reconfigureKubelet"
-    value = "true"
-  }
-
-  set {
-    name = "nodeinit.removeCbrBridge"
-    value = "true"
-  }
-
-  set {
-    name = "cni.binPath"
-    value = "/home/kubernetes/bin"
-  }
-
-  set {
-    name = "ipv4NativeRoutingCIDR"
-    value = local.native_cidr
-  }
-
-  set {
-  name  = "hubble.relay.enabled"
-  value = "true"
-  }
-
-  set {
-  name  = "prometheus.enabled"
-  value = "true"
-  }
-
-  set {
-  name  = "operator.prometheus.enabled"
-  value = "true"
-  }
-
-  set {
-  name  = "hubble.metrics.enableOpenMetrics"
-  value = "true"
-  }
-
-  depends_on = [google_container_cluster.primary, google_container_node_pool.primary_nodes]
-}
-
 resource "helm_release" "nginx_ingress" {
   name       = "nginx-ingress"
   namespace  = "ingress-nginx"
@@ -194,7 +123,6 @@ controller:
 EOF
   ]
 
-  depends_on = [helm_release.cilium]
 }
 
 resource "helm_release" "cert_manager" {
