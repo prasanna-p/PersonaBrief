@@ -44,12 +44,6 @@ resource "google_container_node_pool" "primary_nodes" {
       mode = "GKE_METADATA"
     }
 
-    # Apply Cilium-required taint
-    taint {
-      key    = "node.cilium.io/agent-not-ready"
-      value  = "true"
-      effect = "NO_EXECUTE"
-    }
   }
 }
 
