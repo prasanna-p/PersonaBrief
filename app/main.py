@@ -13,7 +13,7 @@ SEARCH_ENGINE_ID = os.getenv('SEARCH_ENGINE_ID')
 PROJECT_ID = os.getenv('PROJECT_ID')
 LOCATION = os.getenv('LOCATION')
 
-# Initialize Vertex AI
+# Initialize Vertex AI with LLM model
 vertexai.init(project=PROJECT_ID, location=LOCATION)
 model = GenerativeModel("gemini-2.5-pro")
 chat = model.start_chat()
